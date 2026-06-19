@@ -8,6 +8,7 @@ import cc.oniacute.bakapotatopatcher.common.BakaPotatoDebugInfo;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoHardwareId;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoModListFormatter;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoPatchApplicability;
+import cc.oniacute.bakapotatopatcher.common.BakaPotatoUpdateChecker;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoWaypointGuard;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoRequest;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoResponse;
@@ -50,6 +51,7 @@ public final class BakaPotatoPatcherNeoForgeClient {
     public BakaPotatoPatcherNeoForgeClient(IEventBus modBus) {
         BakaPotatoClientConfigManager.initialize(FMLPaths.CONFIGDIR.get());
         BakaPotatoPatchApplicability.refreshRemoteServersAsync(BakaPotatoClientConfigManager.get());
+        checkUpdates(true);
         modBus.addListener(ClientNetwork::registerPayloads);
         modBus.addListener(BakaPotatoPatcherNeoForgeClient::registerKeys);
         NeoForge.EVENT_BUS.addListener(BakaPotatoPatcherNeoForgeClient::afterClientTick);
@@ -69,12 +71,27 @@ public final class BakaPotatoPatcherNeoForgeClient {
     private static void afterClientTick(ClientTickEvent.Post event) {
         updateServerState(Minecraft.getInstance());
         tickClientStats(Minecraft.getInstance());
+        openStartupUpdateReminder(Minecraft.getInstance());
         if (openConfigKey == null) {
             return;
         }
         while (openConfigKey.consumeClick()) {
             Minecraft.getInstance().setScreenAndShow(new NeoForgeConfigScreen(null));
         }
+    }
+
+    public static void checkUpdates(boolean startup) {
+        BakaPotatoUpdateChecker.checkAsync(LoaderType.NEOFORGE.id(), currentModVersion(), startup);
+    }
+
+    private static void openStartupUpdateReminder(Minecraft client) {
+        if (BakaPotatoUpdateChecker.consumeStartupReminder()) {
+            client.setScreenAndShow(new NeoForgeUpdateScreen(null, currentModVersion()));
+        }
+    }
+
+    public static String currentModVersion() {
+        return ClientNetwork.modVersion();
     }
 
     private static void tickClientStats(Minecraft client) {

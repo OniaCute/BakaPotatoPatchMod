@@ -48,6 +48,7 @@ public final class NeoForgeConfigScreen extends Screen {
     private Button sendModListButton;
     private Button modListModeButton;
     private Button hardwareHashButton;
+    private Button checkUpdateButton;
     private Button saveButton;
     private final Map<String, Button> multiChoiceButtons = new LinkedHashMap<>();
 
@@ -164,6 +165,14 @@ public final class NeoForgeConfigScreen extends Screen {
         addItemLabels(labelX, y, "向服务器发送硬件ID哈希 (privacy.hardwareIdHash)", "不可设置，仅在服务器管理员执行检查命令时发送 SHA-256 哈希。");
         hardwareHashButton = addControlButton(controlX, y, Component.literal("硬件ID哈希: 按需发送"), button -> {});
         hardwareHashButton.active = false;
+        y += ROW_HEIGHT;
+        y = section(labelX, y, "更新");
+        y = subsection(labelX, y, "版本检查");
+        addItemLabels(labelX, y, "检查更新 (update.check)", "从 BakaPotato Mod API 获取当前加载器的最新版本状态。");
+        checkUpdateButton = addControlButton(controlX, y, Component.literal("检查更新"), button -> {
+            BakaPotatoPatcherNeoForgeClient.checkUpdates(false);
+            Minecraft.getInstance().setScreenAndShow(new NeoForgeUpdateScreen(this, BakaPotatoPatcherNeoForgeClient.currentModVersion()));
+        });
         y += ROW_HEIGHT;
         contentHeight = y + scrollOffset - TOP + BOTTOM_PADDING;
         clampScroll();
@@ -338,6 +347,7 @@ public final class NeoForgeConfigScreen extends Screen {
         sendModListButton = null;
         modListModeButton = null;
         hardwareHashButton = null;
+        checkUpdateButton = null;
         multiChoiceButtons.clear();
     }
 

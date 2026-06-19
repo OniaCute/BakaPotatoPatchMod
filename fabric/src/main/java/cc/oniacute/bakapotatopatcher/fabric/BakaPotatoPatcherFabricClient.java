@@ -8,6 +8,7 @@ import cc.oniacute.bakapotatopatcher.common.BakaPotatoDebugInfo;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoHardwareId;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoModListFormatter;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoPatchApplicability;
+import cc.oniacute.bakapotatopatcher.common.BakaPotatoUpdateChecker;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoWaypointGuard;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoRequest;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoResponse;
@@ -45,6 +46,7 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
     public void onInitializeClient() {
         BakaPotatoClientConfigManager.initialize(FabricLoader.getInstance().getConfigDir());
         BakaPotatoPatchApplicability.refreshRemoteServersAsync(BakaPotatoClientConfigManager.get());
+        checkUpdates(true);
         registerConfigKey();
         PayloadTypeRegistry.playS2C().register(FabricHandshakeQueryPayload.TYPE, FabricHandshakeQueryPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(FabricHandshakeResponsePayload.TYPE, FabricHandshakeResponsePayload.STREAM_CODEC);
@@ -57,7 +59,7 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
                     BakaPotatoProtocol.decodeQuery(payload.data());
                     patcherServer = true;
                     byte[] response = ClientHandshakeFactory.responsePayload(
-                            modVersion(),
+                            currentModVersion(),
                             LoaderType.FABRIC,
                             SharedConstants.getCurrentVersion().name()
                     );
@@ -92,10 +94,21 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             updateServerState(client);
             tickClientStats(client);
+            openStartupUpdateReminder(client);
             while (openConfigKey.consumeClick()) {
                 Minecraft.getInstance().setScreen(new FabricConfigScreen(Minecraft.getInstance().screen));
             }
         });
+    }
+
+    public static void checkUpdates(boolean startup) {
+        BakaPotatoUpdateChecker.checkAsync(LoaderType.FABRIC.id(), currentModVersion(), startup);
+    }
+
+    private void openStartupUpdateReminder(Minecraft client) {
+        if (BakaPotatoUpdateChecker.consumeStartupReminder()) {
+            client.setScreen(new FabricUpdateScreen(client.screen, currentModVersion()));
+        }
     }
 
     private void tickClientStats(Minecraft client) {
@@ -160,7 +173,7 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
         BakaPotatoClientTelemetry.markPacketSentToServer();
     }
 
-    private String modVersion() {
+    public static String currentModVersion() {
         return FabricLoader.getInstance()
                 .getModContainer(BakaPotatoProtocol.MOD_ID)
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())

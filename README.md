@@ -11,3 +11,4 @@ Minecraft 客户端补丁 Mod，支持 Fabric、Forge、NeoForge。
 - 可自动同意服务器资源包。
 - 提供客户端配置界面和游戏内 HUD 调试显示。
 - 按服务器命令请求发送 Mod 列表和硬件 ID 哈希。
+- 启动时和手动检查 Mod 更新。

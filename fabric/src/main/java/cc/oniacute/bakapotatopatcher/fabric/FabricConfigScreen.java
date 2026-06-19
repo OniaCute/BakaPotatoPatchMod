@@ -48,6 +48,7 @@ public final class FabricConfigScreen extends Screen {
     private Button sendModListButton;
     private Button modListModeButton;
     private Button hardwareHashButton;
+    private Button checkUpdateButton;
     private Button saveButton;
     private final Map<String, Button> multiChoiceButtons = new LinkedHashMap<>();
 
@@ -174,6 +175,15 @@ public final class FabricConfigScreen extends Screen {
         hardwareHashButton = addControlButton(controlX, y, Component.literal("硬件ID哈希: 按需发送"), button -> {
         });
         hardwareHashButton.active = false;
+        y += ROW_HEIGHT;
+
+        y = section(labelX, y, "更新");
+        y = subsection(labelX, y, "版本检查");
+        addItemLabels(labelX, y, "检查更新 (update.check)", "从 BakaPotato Mod API 获取当前加载器的最新版本状态。");
+        checkUpdateButton = addControlButton(controlX, y, Component.literal("检查更新"), button -> {
+            BakaPotatoPatcherFabricClient.checkUpdates(false);
+            Minecraft.getInstance().setScreen(new FabricUpdateScreen(this, BakaPotatoPatcherFabricClient.currentModVersion()));
+        });
         y += ROW_HEIGHT;
 
         contentHeight = y + scrollOffset - TOP + BOTTOM_PADDING;
@@ -403,6 +413,7 @@ public final class FabricConfigScreen extends Screen {
         sendModListButton = null;
         modListModeButton = null;
         hardwareHashButton = null;
+        checkUpdateButton = null;
         multiChoiceButtons.clear();
     }
 

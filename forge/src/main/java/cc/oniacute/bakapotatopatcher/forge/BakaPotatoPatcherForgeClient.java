@@ -8,6 +8,7 @@ import cc.oniacute.bakapotatopatcher.common.BakaPotatoDebugInfo;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoHardwareId;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoModListFormatter;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoPatchApplicability;
+import cc.oniacute.bakapotatopatcher.common.BakaPotatoUpdateChecker;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoWaypointGuard;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoRequest;
 import cc.oniacute.bakapotatopatcher.common.ClientInfoResponse;
@@ -66,6 +67,7 @@ public final class BakaPotatoPatcherForgeClient {
     public BakaPotatoPatcherForgeClient() {
         BakaPotatoClientConfigManager.initialize(FMLPaths.CONFIGDIR.get());
         BakaPotatoPatchApplicability.refreshRemoteServersAsync(BakaPotatoClientConfigManager.get());
+        checkUpdates(true);
         CHANNEL.getName();
         registerWaypointChannels();
         RegisterKeyMappingsEvent.BUS.addListener(BakaPotatoPatcherForgeClient::registerKeys);
@@ -85,11 +87,22 @@ public final class BakaPotatoPatcherForgeClient {
     private static void afterClientTick(TickEvent.ClientTickEvent.Post event) {
         updateServerState(Minecraft.getInstance());
         tickClientStats(Minecraft.getInstance());
+        openStartupUpdateReminder(Minecraft.getInstance());
         if (openConfigKey == null) {
             return;
         }
         while (openConfigKey.consumeClick()) {
             Minecraft.getInstance().setScreen(new ForgeConfigScreen(Minecraft.getInstance().screen));
+        }
+    }
+
+    public static void checkUpdates(boolean startup) {
+        BakaPotatoUpdateChecker.checkAsync(LoaderType.FORGE.id(), currentModVersion(), startup);
+    }
+
+    private static void openStartupUpdateReminder(Minecraft client) {
+        if (BakaPotatoUpdateChecker.consumeStartupReminder()) {
+            client.setScreen(new ForgeUpdateScreen(client.screen, currentModVersion()));
         }
     }
 
@@ -127,7 +140,7 @@ public final class BakaPotatoPatcherForgeClient {
                     BakaPotatoProtocol.decodeQuery(payload.data());
                     patcherServer = true;
                     byte[] response = ClientHandshakeFactory.responsePayload(
-                            modVersion(),
+                            currentModVersion(),
                             LoaderType.FORGE,
                             SharedConstants.getCurrentVersion().name()
                     );
@@ -198,7 +211,7 @@ public final class BakaPotatoPatcherForgeClient {
         BakaPotatoClientTelemetry.markPacketSentToServer();
     }
 
-    private static String modVersion() {
+    public static String currentModVersion() {
         return ModList.get()
                 .getModContainerById(BakaPotatoProtocol.MOD_ID)
                 .map(container -> container.getModInfo().getVersion().toString())
