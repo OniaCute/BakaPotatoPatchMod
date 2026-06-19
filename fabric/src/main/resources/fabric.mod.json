@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "Client handshake responder for BakaPotatoPatch server detection.",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "license": "${mod_license}",
+  "environment": "client",
+  "mixins": [
+    "bakapotatopatcher.fabric.mixins.json"
+  ],
+  "entrypoints": {
+    "client": [
+      "cc.oniacute.bakapotatopatcher.fabric.BakaPotatoPatcherFabricClient"
+    ],
+    "modmenu": [
+      "cc.oniacute.bakapotatopatcher.fabric.FabricModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader}",
+    "minecraft": "${minecraft_version}",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

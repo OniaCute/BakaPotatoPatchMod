@@ -1,0 +1,26 @@
+allprojects {
+    group = project.findProperty("group")
+    version = project.findProperty("version")
+}
+
+subprojects {
+    pluginManager.withPlugin("java") {
+        java {
+            toolchain.languageVersion = JavaLanguageVersion.of(21)
+            sourceCompatibility = JavaVersion.VERSION_21
+            targetCompatibility = JavaVersion.VERSION_21
+        }
+
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = "UTF-8"
+            options.release.set(21)
+            options.compilerArgs.add("-Xlint:deprecation")
+        }
+    }
+}
+
+if (findProject(":fabric") != null && findProject(":forge") != null && findProject(":neoforge") != null) {
+    tasks.register("allModBuild") {
+        dependsOn(":fabric:build", ":forge:build", ":neoforge:build")
+    }
+}

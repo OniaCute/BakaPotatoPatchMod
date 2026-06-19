@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cc.oniacute.bakapotatopatcher.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ClientCommonPacketListenerImplMixin",
+    "ClientPacketListenerMixin",
+    "GuiMixin",
+    "PacketDecoderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

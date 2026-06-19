@@ -1,0 +1,72 @@
+plugins {
+    id "net.minecraftforge.gradle" version "${forge_gradle_version}"
+}
+
+base {
+    archivesName = "${mod_id}-forge"
+}
+
+repositories {
+    maven { url = "https://maven.aliyun.com/repository/public" }
+    maven { url = "https://maven.aliyun.com/repository/central" }
+    maven { url = "https://repo.huaweicloud.com/repository/maven" }
+    maven {
+        url = "https://libraries.minecraft.net/"
+        content {
+            includeModule("com.mojang", "text2speech")
+        }
+    }
+    maven { url = "https://bmclapi2.bangbang93.com/maven" }
+    maven { url = "https://maven.minecraftforge.net/" }
+    mavenCentral()
+    flatDir { dirs "libs" }
+}
+
+repositories.configureEach { repository ->
+    if (repository.hasProperty("url")) {
+        String urlText = repository.url.toString()
+        if (urlText.contains("maven.minecraftforge.net") || urlText.contains("libraries.minecraft.net")) {
+            repository.content {
+                excludeGroup("net.minecraftforge")
+                excludeGroup("com.mojang")
+                excludeGroup("net.minecraft")
+            }
+        }
+    }
+}
+
+minecraft {
+    mappings channel: "official", version: minecraft_version
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation project(":common")
+}
+
+jar {
+    from(project(":common").sourceSets.main.output)
+    dependsOn(project(":common").tasks.named("classes"))
+    manifest {
+        attributes([
+                "MixinConfigs": "bakapotatopatcher.forge.mixins.json"
+        ])
+    }
+}
+
+processResources {
+    def props = [
+            mod_id           : mod_id,
+            mod_name         : mod_name,
+            version          : project.version,
+            minecraft_version: minecraft_version,
+            forge_version    : forge_version,
+            mod_license      : mod_license,
+            mod_authors      : mod_authors
+    ]
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    filesMatching(["META-INF/mods.toml", "pack.mcmeta"]) {
+        expand(props)
+    }
+}

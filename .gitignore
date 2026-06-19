@@ -1,0 +1,8 @@
+.code-graph/
+.gradle/
+build/
+**/build/
+**/bin/
+.idea/
+.vscode/
+run/

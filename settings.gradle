@@ -1,0 +1,70 @@
+pluginManagement {
+    repositories {
+        maven { url = "https://maven.aliyun.com/repository/gradle-plugin" }
+        maven { url = "https://maven.aliyun.com/repository/public" }
+        maven { url = "https://repo.huaweicloud.com/repository/maven" }
+        maven { url = "https://maven.fabricmc.net/" }
+        maven {
+            url = "https://maven.minecraftforge.net/"
+            content {
+                includeGroup("net.minecraftforge.gradle")
+            }
+        }
+        maven { url = "https://maven.neoforged.net/releases" }
+        maven {
+            url = "https://bmclapi2.bangbang93.com/maven"
+            content {
+                excludeGroup("net.minecraftforge.gradle")
+            }
+        }
+        gradlePluginPortal()
+    }
+}
+
+def requestedTasks = gradle.startParameter.taskNames
+def needsProjectRepositories = requestedTasks.any {
+    it.contains("fabric") || it.contains("forge") || it.contains("neoforge") || it == "allModBuild" || it == ":allModBuild"
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(needsProjectRepositories ? RepositoriesMode.PREFER_PROJECT : RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        maven { url = "https://maven.aliyun.com/repository/public" }
+        maven { url = "https://maven.aliyun.com/repository/central" }
+        maven { url = "https://repo.huaweicloud.com/repository/maven" }
+        mavenCentral()
+        maven { url = "https://maven.fabricmc.net/" }
+        maven {
+            url = "https://libraries.minecraft.net/"
+            content {
+                includeModule("com.mojang", "text2speech")
+            }
+        }
+        maven { url = "https://bmclapi2.bangbang93.com/maven" }
+        maven {
+            url = "https://maven.minecraftforge.net/"
+            content {
+                excludeGroup("net.minecraftforge")
+                excludeGroup("com.mojang")
+                excludeGroup("net.minecraft")
+            }
+        }
+        maven { url = "https://maven.neoforged.net/releases" }
+    }
+}
+
+rootProject.name = "BakaPotatoPatchMod"
+
+include("common")
+
+def includeAllMods = requestedTasks.any { task -> task == "allModBuild" || task == ":allModBuild" }
+
+if (includeAllMods || requestedTasks.any { it.contains("fabric") }) {
+    include("fabric")
+}
+if (includeAllMods || requestedTasks.any { it.contains("forge") && !it.contains("neoforge") }) {
+    include("forge")
+}
+if (includeAllMods || requestedTasks.any { it.contains("neoforge") }) {
+    include("neoforge")
+}
