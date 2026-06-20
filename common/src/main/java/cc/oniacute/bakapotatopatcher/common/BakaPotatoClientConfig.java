@@ -11,6 +11,7 @@ public final class BakaPotatoClientConfig {
     public ResourcePackConfig resourcePacks = new ResourcePackConfig();
     public PrivacyConfig privacy = new PrivacyConfig();
     public DebugConfig debug = new DebugConfig();
+    public UpdateConfig update = new UpdateConfig();
 
     public BakaPotatoClientConfig copy() {
         BakaPotatoClientConfig copy = new BakaPotatoClientConfig();
@@ -40,6 +41,7 @@ public final class BakaPotatoClientConfig {
         copy.debug.hudTextColor = debug.hudTextColor;
         copy.debug.hudStaySeconds = debug.hudStaySeconds;
         copy.debug.hudMaxLines = debug.hudMaxLines;
+        copy.update.checkUpdates = update.checkUpdates;
         return copy;
     }
 
@@ -64,6 +66,9 @@ public final class BakaPotatoClientConfig {
         }
         if (debug == null) {
             debug = new DebugConfig();
+        }
+        if (update == null) {
+            update = new UpdateConfig();
         }
         if (ui.demoString == null) {
             ui.demoString = "";
@@ -191,5 +196,9 @@ public final class BakaPotatoClientConfig {
         public String hudTextColor = "#FFFFFF";
         public int hudStaySeconds = 8;
         public int hudMaxLines = 8;
+    }
+
+    public static final class UpdateConfig {
+        public boolean checkUpdates = true;
     }
 }

@@ -2,6 +2,7 @@ package cc.oniacute.bakapotatopatcher.fabric;
 
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoClientConfig;
 import cc.oniacute.bakapotatopatcher.common.BakaPotatoClientConfigManager;
+import cc.oniacute.bakapotatopatcher.common.BakaPotatoUpdateChecker;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -48,6 +49,7 @@ public final class FabricConfigScreen extends Screen {
     private Button sendModListButton;
     private Button modListModeButton;
     private Button hardwareHashButton;
+    private Button updateReminderButton;
     private Button checkUpdateButton;
     private Button saveButton;
     private final Map<String, Button> multiChoiceButtons = new LinkedHashMap<>();
@@ -71,7 +73,7 @@ public final class FabricConfigScreen extends Screen {
 
         y = section(labelX, y, "服务器范围");
         y = subsection(labelX, y, "应用模式");
-        addItemLabels(labelX, y, "修补应用范围 (patches.applyMode)", "所有服务器应用时，全部功能都会对所有服务器生效。");
+        addItemLabels(labelX, y, "修补应用范围 (patches.applyMode)", "所有服务器应用时,全部功能都会对所有服务器生效.");
         applyModeButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.patches.applyMode = isAllServersMode()
                     ? BakaPotatoClientConfig.PatchConfig.APPLY_MODE_BAKAPOTATO_SERVERS
@@ -83,7 +85,7 @@ public final class FabricConfigScreen extends Screen {
 
         y = section(labelX, y, "资源包修复");
         y = subsection(labelX, y, "服务器材质包");
-        addItemLabels(labelX, y, "自动同意服务器材质包 (resourcePacks.autoAcceptServerPacks)", "进入适用服务器时自动同意服务器材质包提示。");
+        addItemLabels(labelX, y, "自动同意服务器材质包 (resourcePacks.autoAcceptServerPacks)", "进入适用服务器时自动同意服务器材质包提示.");
         autoAcceptPacksButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.resourcePacks.autoAcceptServerPacks = !draft.resourcePacks.autoAcceptServerPacks;
             refreshButtons();
@@ -93,32 +95,32 @@ public final class FabricConfigScreen extends Screen {
         y = section(labelX, y, "网络修复");
         y = subsection(labelX, y, "网络协议错误修正");
         y = subsection(labelX + 16, y, "Waypoint检查");
-        addItemLabels(labelX, y, "Waypoint检查 (waypoint.enabled)", "修正接收异常 Waypoint 数据包导致的网络协议错误。");
+        addItemLabels(labelX, y, "Waypoint检查 (waypoint.enabled)", "修正接收异常 Waypoint 数据包导致的网络协议错误.");
         waypointEnabledButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.waypoint.enabled = !draft.waypoint.enabled;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "丢弃异常Waypoint包 (waypoint.dropInvalidPackets)", "空包、全零包和无法识别的数据包会被直接丢弃。");
+        addItemLabels(labelX, y, "丢弃异常Waypoint包 (waypoint.dropInvalidPackets)", "空包,全零包和无法识别的数据包会被直接丢弃.");
         dropInvalidButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.waypoint.dropInvalidPackets = !draft.waypoint.dropInvalidPackets;
             refreshButtons();
         });
         y += ROW_HEIGHT;
         y = subsection(labelX + 16, y, "过多字节包修复");
-        addItemLabels(labelX, y, "过多字节包修复 (extraBytesPatch.enabled)", "修复数据包解码后仍有多余字节导致的断链。");
+        addItemLabels(labelX, y, "过多字节包修复 (extraBytesPatch.enabled)", "修复数据包解码后仍有多余字节导致的断连.");
         extraBytesEnabledButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.extraBytesPatch.enabled = !draft.extraBytesPatch.enabled;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "过多字节处理模式 (extraBytesPatch.mode)", "强制解析会跳过多余字节；忽略会丢弃该包；断开连接为原版行为。");
+        addItemLabels(labelX, y, "过多字节处理模式 (extraBytesPatch.mode)", "强制解析会跳过多余字节;忽略会丢弃该包;断开连接为原版行为.");
         extraBytesModeButton = addControlButton(controlX, y, Component.empty(), button -> {
             cycleExtraBytesMode();
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "自定义Waypoint通道 (waypoint.customChannels)", "逗号分隔的 namespace:path 通道列表，仅启动时注册。");
+        addItemLabels(labelX, y, "自定义Waypoint通道 (waypoint.customChannels)", "逗号分隔的 namespace:path 通道列表,仅启动时注册.");
         customChannelsBox = addTextBox(controlX, y, String.join(",", draft.waypoint.customChannels));
         customChannelsBox.setSuggestion("namespace:path,...");
         y += ROW_HEIGHT;
@@ -126,52 +128,52 @@ public final class FabricConfigScreen extends Screen {
         y = section(labelX, y, "调试");
         y = subsection(labelX, y, "网络协议错误修正");
         y = subsection(labelX + 16, y, "Waypoint检查调试");
-        addItemLabels(labelX, y, "丢包调试日志 (waypoint.debugLogDroppedPackets)", "输出被丢弃的 Waypoint 数据包来源，便于排查。");
+        addItemLabels(labelX, y, "丢包调试日志 (waypoint.debugLogDroppedPackets)", "输出被丢弃的 Waypoint 数据包来源,便于排查.");
         debugLogButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.waypoint.debugLogDroppedPackets = !draft.waypoint.debugLogDroppedPackets;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "游戏内HUD调试显示 (debug.showHud)", "在左上角绘制原版文字，显示当前补丁和服务器匹配状态。");
+        addItemLabels(labelX, y, "游戏内HUD调试显示 (debug.showHud)", "在左上角绘制原版文字,显示当前补丁和服务器匹配状态.");
         hudDebugButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.debug.showHud = !draft.debug.showHud;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "HUD背景 (debug.hudBackgroundEnabled)", "控制调试日志文字后方是否绘制半透明背景。");
+        addItemLabels(labelX, y, "HUD背景 (debug.hudBackgroundEnabled)", "控制调试日志文字后方是否绘制半透明背景.");
         hudBackgroundButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.debug.hudBackgroundEnabled = !draft.debug.hudBackgroundEnabled;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "HUD背景颜色 (debug.hudBackgroundColor)", "使用 #RRGGBB 格式，例如 #000000。");
+        addItemLabels(labelX, y, "HUD背景颜色 (debug.hudBackgroundColor)", "使用 #RRGGBB 格式,例如 #000000.");
         hudBackgroundColorBox = addTextBox(controlX, y, draft.debug.hudBackgroundColor);
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "HUD背景透明度 (debug.hudBackgroundAlpha)", "0-255，0 为完全透明，255 为不透明。");
+        addItemLabels(labelX, y, "HUD背景透明度 (debug.hudBackgroundAlpha)", "0-255,0 为完全透明,255 为不透明.");
         hudBackgroundAlphaBox = addTextBox(controlX, y, Integer.toString(draft.debug.hudBackgroundAlpha));
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "HUD文字颜色 (debug.hudTextColor)", "使用 #RRGGBB 格式，例如 #FFFFFF。");
+        addItemLabels(labelX, y, "HUD文字颜色 (debug.hudTextColor)", "使用 #RRGGBB 格式,例如 #FFFFFF.");
         hudTextColorBox = addTextBox(controlX, y, draft.debug.hudTextColor);
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "HUD日志停留时间 (debug.hudStaySeconds)", "每条调试日志在左上角停留的秒数。");
+        addItemLabels(labelX, y, "HUD日志停留时间 (debug.hudStaySeconds)", "每条调试日志在左上角停留的秒数.");
         hudStaySecondsBox = addTextBox(controlX, y, Integer.toString(draft.debug.hudStaySeconds));
         y += ROW_HEIGHT;
 
         y = section(labelX, y, "隐私与上报");
         y = subsection(labelX, y, "服务器检测");
-        addItemLabels(labelX, y, "向服务器发送Mod列表 (privacy.sendModList)", "开启后，仅在服务器管理员执行检查命令时响应 Mod 列表。");
+        addItemLabels(labelX, y, "向服务器发送Mod列表 (privacy.sendModList)", "开启后,仅在服务器管理员执行检查命令时响应 Mod 列表.");
         sendModListButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.privacy.sendModList = !draft.privacy.sendModList;
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "Mod列表发送模式 (privacy.modListMode)", "发送全部包含 id 和版本；仅发送必要会过滤加载器基础 Mod 且只发送名称。");
+        addItemLabels(labelX, y, "Mod列表发送模式 (privacy.modListMode)", "发送全部包含 id 和版本;仅发送必要会过滤加载器基础 Mod 且只发送名称.");
         modListModeButton = addControlButton(controlX, y, Component.empty(), button -> {
             draft.privacy.modListMode = "all".equals(draft.privacy.modListMode) ? "necessary" : "all";
             refreshButtons();
         });
         y += ROW_HEIGHT;
-        addItemLabels(labelX, y, "向服务器发送硬件ID哈希 (privacy.hardwareIdHash)", "不可设置，仅在服务器管理员执行检查命令时发送 SHA-256 哈希。");
+        addItemLabels(labelX, y, "向服务器发送硬件ID哈希 (privacy.hardwareIdHash)", "不可设置,仅在服务器管理员执行检查命令时发送 SHA-256 哈希.");
         hardwareHashButton = addControlButton(controlX, y, Component.literal("硬件ID哈希: 按需发送"), button -> {
         });
         hardwareHashButton.active = false;
@@ -179,9 +181,20 @@ public final class FabricConfigScreen extends Screen {
 
         y = section(labelX, y, "更新");
         y = subsection(labelX, y, "版本检查");
-        addItemLabels(labelX, y, "检查更新 (update.check)", "从 BakaPotato Mod API 获取当前加载器的最新版本状态。");
+        addItemLabels(labelX, y, "更新提醒 (update.checkUpdates)", "控制是否在启动时和点击检查按钮时请求更新 API.");
+        updateReminderButton = addControlButton(controlX, y, Component.empty(), button -> {
+            draft.update.checkUpdates = !draft.update.checkUpdates;
+            refreshButtons();
+        });
+        y += ROW_HEIGHT;
+        addItemLabels(labelX, y, "检查更新 (update.check)", "立即查看当前加载器的版本状态;关闭更新提醒时不会请求 API.");
         checkUpdateButton = addControlButton(controlX, y, Component.literal("检查更新"), button -> {
-            BakaPotatoPatcherFabricClient.checkUpdates(false);
+            if (draft.update.checkUpdates) {
+                BakaPotatoClientConfigManager.replaceAndSave(draft);
+                BakaPotatoPatcherFabricClient.checkUpdates(false);
+            } else {
+                BakaPotatoUpdateChecker.markDisabled("fabric", BakaPotatoPatcherFabricClient.currentModVersion());
+            }
             Minecraft.getInstance().setScreen(new FabricUpdateScreen(this, BakaPotatoPatcherFabricClient.currentModVersion()));
         });
         y += ROW_HEIGHT;
@@ -359,6 +372,9 @@ public final class FabricConfigScreen extends Screen {
         if (modListModeButton != null) {
             modListModeButton.setMessage(Component.literal("Mod列表: " + ("all".equals(draft.privacy.modListMode) ? "发送全部" : "仅发送必要")));
         }
+        if (updateReminderButton != null) {
+            updateReminderButton.setMessage(toggle("更新提醒", draft.update.checkUpdates));
+        }
         if (booleanButton != null) {
             booleanButton.setMessage(toggle("开关", draft.ui.demoBoolean));
         }
@@ -413,6 +429,7 @@ public final class FabricConfigScreen extends Screen {
         sendModListButton = null;
         modListModeButton = null;
         hardwareHashButton = null;
+        updateReminderButton = null;
         checkUpdateButton = null;
         multiChoiceButtons.clear();
     }

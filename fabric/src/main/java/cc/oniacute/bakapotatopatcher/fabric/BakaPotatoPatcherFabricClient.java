@@ -17,8 +17,6 @@ import cc.oniacute.bakapotatopatcher.common.ClientStatsPacket;
 import cc.oniacute.bakapotatopatcher.common.LoaderType;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
@@ -26,11 +24,13 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.SharedConstants;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,21 +39,24 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
     private static final KeyMapping.Category KEY_CATEGORY = KeyMapping.Category.register(
             Identifier.fromNamespaceAndPath(BakaPotatoProtocol.MOD_ID, "main")
     );
+    private static BakaPotatoPatcherFabricClient instance;
     private static KeyMapping openConfigKey;
     private boolean patcherServer;
 
     @Override
     public void onInitializeClient() {
+        instance = this;
         BakaPotatoClientConfigManager.initialize(FabricLoader.getInstance().getConfigDir());
         BakaPotatoPatchApplicability.refreshRemoteServersAsync(BakaPotatoClientConfigManager.get());
         checkUpdates(true);
         registerConfigKey();
-        PayloadTypeRegistry.playS2C().register(FabricHandshakeQueryPayload.TYPE, FabricHandshakeQueryPayload.STREAM_CODEC);
-        PayloadTypeRegistry.playC2S().register(FabricHandshakeResponsePayload.TYPE, FabricHandshakeResponsePayload.STREAM_CODEC);
+        registerClientboundPayload(FabricHandshakeQueryPayload.TYPE, FabricHandshakeQueryPayload.STREAM_CODEC);
+        registerServerboundPayload(FabricHandshakeResponsePayload.TYPE, FabricHandshakeResponsePayload.STREAM_CODEC);
         registerWaypointReceivers();
 
         ClientPlayNetworking.registerGlobalReceiver(FabricHandshakeQueryPayload.TYPE, (payload, context) -> {
             try {
+                refreshCurrentServerFromClient();
                 String type = BakaPotatoProtocol.readPacketType(payload.data());
                 if (BakaPotatoProtocol.TYPE_QUERY.equals(type)) {
                     BakaPotatoProtocol.decodeQuery(payload.data());
@@ -85,24 +88,63 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
     }
 
     private void registerConfigKey() {
-        openConfigKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "key.bakapotatopatcher.open_config",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_UNKNOWN,
-                KEY_CATEGORY
-        ));
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            updateServerState(client);
-            tickClientStats(client);
-            openStartupUpdateReminder(client);
-            while (openConfigKey.consumeClick()) {
-                Minecraft.getInstance().setScreen(new FabricConfigScreen(Minecraft.getInstance().screen));
+        try {
+            openConfigKey = registerKeyMapping(new KeyMapping(
+                    "key.bakapotatopatcher.open_config",
+                    InputConstants.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    KEY_CATEGORY
+            ));
+        } catch (LinkageError | RuntimeException error) {
+            openConfigKey = null;
+            BakaPotatoDebugInfo.log("config key skipped: " + error.getClass().getSimpleName());
+            System.out.println("[BakaPotatoPatcher] Fabric key binding API is unavailable; config key is disabled.");
+        }
+    }
+
+    private static KeyMapping registerKeyMapping(KeyMapping keyMapping) {
+        for (String className : List.of(
+                "net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper",
+                "net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper"
+        )) {
+            for (String methodName : List.of("registerKeyMapping", "registerKeyBinding")) {
+                try {
+                    Class<?> helper = Class.forName(className);
+                    Method method = helper.getMethod(methodName, KeyMapping.class);
+                    return (KeyMapping) method.invoke(null, keyMapping);
+                } catch (ReflectiveOperationException | LinkageError ignored) {
+                    // Try the next Fabric API package and method name.
+                }
             }
-        });
+        }
+        throw new IllegalStateException("No compatible Fabric key mapping helper found");
+    }
+
+    private static void refreshCurrentServerFromClient() {
+        Minecraft client = Minecraft.getInstance();
+        ServerData server = client == null ? null : client.getCurrentServer();
+        BakaPotatoPatchApplicability.setCurrentServerAddress(server == null ? "" : server.ip);
     }
 
     public static void checkUpdates(boolean startup) {
+        if (!BakaPotatoClientConfigManager.get().update.checkUpdates) {
+            BakaPotatoUpdateChecker.markDisabled(LoaderType.FABRIC.id(), currentModVersion());
+            return;
+        }
         BakaPotatoUpdateChecker.checkAsync(LoaderType.FABRIC.id(), currentModVersion(), startup);
+    }
+
+    public static void tickClient(Minecraft client) {
+        BakaPotatoPatcherFabricClient current = instance;
+        if (current == null || client == null) {
+            return;
+        }
+        current.updateServerState(client);
+        current.tickClientStats(client);
+        current.openStartupUpdateReminder(client);
+        while (openConfigKey != null && openConfigKey.consumeClick()) {
+            client.setScreen(new FabricConfigScreen(client.screen));
+        }
     }
 
     private void openStartupUpdateReminder(Minecraft client) {
@@ -156,7 +198,7 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
 
     private void registerWaypointReceiver(Identifier id) {
         CustomPacketPayload.Type<FabricWaypointPayload> type = new CustomPacketPayload.Type<>(id);
-        PayloadTypeRegistry.playS2C().register(type, FabricWaypointPayload.codec(type));
+        registerClientboundPayload(type, FabricWaypointPayload.codec(type));
         ClientPlayNetworking.registerGlobalReceiver(type, (payload, context) -> {
             boolean dropped = BakaPotatoWaypointGuard.shouldDrop(payload == null ? null : payload.data(), BakaPotatoClientConfigManager.get());
             if (dropped && BakaPotatoClientConfigManager.get().waypoint.debugLogDroppedPackets) {
@@ -166,6 +208,38 @@ public final class BakaPotatoPatcherFabricClient implements ClientModInitializer
                 BakaPotatoDebugInfo.log("dropped custom waypoint payload: " + id);
             }
         });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static <T extends CustomPacketPayload> void registerClientboundPayload(
+            CustomPacketPayload.Type<T> type,
+            StreamCodec<?, T> codec
+    ) {
+        PayloadTypeRegistry registry = payloadRegistry("clientboundPlay", "playS2C");
+        registry.register(type, (StreamCodec) codec);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static <T extends CustomPacketPayload> void registerServerboundPayload(
+            CustomPacketPayload.Type<T> type,
+            StreamCodec<?, T> codec
+    ) {
+        PayloadTypeRegistry registry = payloadRegistry("serverboundPlay", "playC2S");
+        registry.register(type, (StreamCodec) codec);
+    }
+
+    private static PayloadTypeRegistry<?> payloadRegistry(String preferredMethod, String legacyMethod) {
+        try {
+            Method method = PayloadTypeRegistry.class.getMethod(preferredMethod);
+            return (PayloadTypeRegistry<?>) method.invoke(null);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            try {
+                Method method = PayloadTypeRegistry.class.getMethod(legacyMethod);
+                return (PayloadTypeRegistry<?>) method.invoke(null);
+            } catch (ReflectiveOperationException | LinkageError error) {
+                throw new IllegalStateException("No compatible Fabric payload registry method found", error);
+            }
+        }
     }
 
     private static void sendToServer(byte[] payload) {

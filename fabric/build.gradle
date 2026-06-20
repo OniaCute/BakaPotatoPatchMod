@@ -3,7 +3,7 @@ plugins {
 }
 
 base {
-    archivesName = "${mod_id}-fabric"
+    archivesName = "BakaPotatoPatch"
 }
 
 repositories {
@@ -39,7 +39,7 @@ processResources {
             mod_id           : mod_id,
             mod_name         : mod_name,
             version          : project.version,
-            minecraft_version: minecraft_version,
+            minecraft_version: minecraft_dependency,
             fabric_loader    : fabric_loader_version,
             mod_license      : mod_license,
             mod_authors      : mod_authors
@@ -49,4 +49,45 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand(props)
     }
+}
+
+tasks.named("remapJar") {
+    archiveClassifier = "fabric-legacy"
+}
+
+def namedResources = layout.buildDirectory.dir("generated/resources/fabricNamed")
+
+tasks.register("processNamedResources", Copy) {
+    def props = [
+            mod_id           : mod_id,
+            mod_name         : mod_name,
+            version          : project.version,
+            minecraft_version: minecraft_named_dependency,
+            fabric_loader    : fabric_loader_version,
+            mod_license      : mod_license,
+            mod_authors      : mod_authors
+    ]
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    into(namedResources)
+    from(sourceSets.main.resources.srcDirs) {
+        exclude("fabric.mod.json")
+    }
+    from("src/main/resources/fabric.mod.json") {
+        expand(props)
+    }
+}
+
+tasks.register("namedJar", Jar) {
+    group = "build"
+    description = "Builds a named-namespace Fabric jar for Minecraft 26.x environments without Fabric mappings."
+    archiveClassifier = "fabric-26.x"
+    dependsOn("classes", "processNamedResources", project(":common").tasks.named("classes"))
+    from(sourceSets.main.output.classesDirs)
+    from(namedResources)
+    from(project(":common").sourceSets.main.output)
+}
+
+tasks.named("assemble") {
+    dependsOn("namedJar")
 }

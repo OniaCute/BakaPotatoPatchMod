@@ -20,6 +20,9 @@ public final class BakaPotatoUpdateChecker {
 
     private static final Pattern VERSION_PATTERN = Pattern.compile("\"version\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern REMINDS_PATTERN = Pattern.compile("\"?reminds\"?\\s*:\\s*(\\d+)");
+    private static final Pattern OK_PATTERN = Pattern.compile("\"ok\"\\s*:\\s*(true|false)");
+    private static final Pattern CODE_PATTERN = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile("\"message\"\\s*:\\s*\"([^\"]*)\"");
     private static final AtomicReference<Result> lastResult = new AtomicReference<>(Result.idle());
     private static final AtomicBoolean inProgress = new AtomicBoolean();
     private static final AtomicBoolean startupReminderConsumed = new AtomicBoolean();
@@ -55,6 +58,10 @@ public final class BakaPotatoUpdateChecker {
         return lastResult.get();
     }
 
+    public static void markDisabled(String loaderId, String currentVersion) {
+        lastResult.set(new Result(Status.DISABLED, loaderId, currentVersion, "", 1, true, ""));
+    }
+
     public static boolean consumeStartupReminder() {
         Result result = lastResult.get();
         return result.shouldRemind() && startupReminderConsumed.compareAndSet(false, true);
@@ -71,7 +78,15 @@ public final class BakaPotatoUpdateChecker {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 return Result.failed(normalizedLoader, currentVersion, "HTTP " + response.statusCode());
             }
-            String object = loaderObject(response.body(), normalizedLoader);
+            String body = response.body();
+            String ok = match(OK_PATTERN, body);
+            if ("false".equals(ok)) {
+                String code = match(CODE_PATTERN, body);
+                String message = match(MESSAGE_PATTERN, body);
+                String detail = code.isBlank() ? message : code + (message.isBlank() ? "" : ": " + message);
+                return Result.failed(normalizedLoader, currentVersion, detail.isBlank() ? "api error" : detail);
+            }
+            String object = loaderObject(body, normalizedLoader);
             if (object.isBlank()) {
                 return Result.failed(normalizedLoader, currentVersion, "missing loader entry");
             }
@@ -125,6 +140,7 @@ public final class BakaPotatoUpdateChecker {
 
     public enum Status {
         IDLE,
+        DISABLED,
         CHECKING,
         READY,
         FAILED

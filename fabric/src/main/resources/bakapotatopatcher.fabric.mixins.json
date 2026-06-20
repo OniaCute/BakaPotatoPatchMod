@@ -7,9 +7,10 @@
     "ClientCommonPacketListenerImplMixin",
     "ClientPacketListenerMixin",
     "GuiMixin",
+    "MinecraftMixin",
     "PacketDecoderMixin"
   ],
   "injectors": {
-    "defaultRequire": 1
+    "defaultRequire": 0
   }
 }

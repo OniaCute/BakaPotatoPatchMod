@@ -97,6 +97,10 @@ public final class BakaPotatoPatcherForgeClient {
     }
 
     public static void checkUpdates(boolean startup) {
+        if (!BakaPotatoClientConfigManager.get().update.checkUpdates) {
+            BakaPotatoUpdateChecker.markDisabled(LoaderType.FORGE.id(), currentModVersion());
+            return;
+        }
         BakaPotatoUpdateChecker.checkAsync(LoaderType.FORGE.id(), currentModVersion(), startup);
     }
 

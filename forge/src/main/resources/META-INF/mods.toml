@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[61,)"
+loaderVersion = "${forge_loader_version}"
 license = "${mod_license}"
 
 [[mods]]
@@ -19,6 +19,6 @@ side = "CLIENT"
 [[dependencies.${mod_id}]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[${minecraft_version}]"
+versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "CLIENT"

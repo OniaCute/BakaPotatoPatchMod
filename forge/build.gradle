@@ -3,7 +3,7 @@ plugins {
 }
 
 base {
-    archivesName = "${mod_id}-forge"
+    archivesName = "BakaPotatoPatch"
 }
 
 repositories {
@@ -45,6 +45,7 @@ dependencies {
 }
 
 jar {
+    archiveClassifier = "forge-legacy"
     from(project(":common").sourceSets.main.output)
     dependsOn(project(":common").tasks.named("classes"))
     manifest {
@@ -60,7 +61,9 @@ processResources {
             mod_name         : mod_name,
             version          : project.version,
             minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_legacy_version_range,
             forge_version    : forge_version,
+            forge_loader_version: forge_loader_version,
             mod_license      : mod_license,
             mod_authors      : mod_authors
     ]

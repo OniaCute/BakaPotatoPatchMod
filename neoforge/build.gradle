@@ -3,7 +3,7 @@ plugins {
 }
 
 base {
-    archivesName = "${mod_id}-neoforge"
+    archivesName = "BakaPotatoPatch"
 }
 
 java {
@@ -35,6 +35,7 @@ dependencies {
 }
 
 jar {
+    archiveClassifier = "neoforge-26.x"
     from(project(":common").sourceSets.main.output)
     dependsOn(project(":common").tasks.named("classes"))
     manifest {
@@ -50,7 +51,9 @@ processResources {
             mod_name         : mod_name,
             version          : project.version,
             minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_26x_version_range,
             neoforge_version : neoforge_version,
+            neoforge_loader_version: neoforge_26x_loader_version,
             mod_license      : mod_license,
             mod_authors      : mod_authors
     ]

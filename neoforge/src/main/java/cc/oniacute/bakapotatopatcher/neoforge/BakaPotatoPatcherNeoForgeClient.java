@@ -81,6 +81,10 @@ public final class BakaPotatoPatcherNeoForgeClient {
     }
 
     public static void checkUpdates(boolean startup) {
+        if (!BakaPotatoClientConfigManager.get().update.checkUpdates) {
+            BakaPotatoUpdateChecker.markDisabled(LoaderType.NEOFORGE.id(), currentModVersion());
+            return;
+        }
         BakaPotatoUpdateChecker.checkAsync(LoaderType.NEOFORGE.id(), currentModVersion(), startup);
     }
 
